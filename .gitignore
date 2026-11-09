@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.wrangler/
+# Secrets locaux : ne jamais versionner
+.dev.vars
+.env*
+coverage/

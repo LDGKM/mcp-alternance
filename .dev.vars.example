@@ -1,0 +1,6 @@
+# Copiez ce fichier en .dev.vars pour `npm run dev` (développement local uniquement).
+# .dev.vars est ignoré par Git. En production, les secrets se saisissent avec `npx wrangler secret put`.
+CLE_ACCES=
+LBA_API_KEY=
+FT_CLIENT_ID=
+FT_CLIENT_SECRET=

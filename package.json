@@ -1,0 +1,35 @@
+{
+  "name": "mcp-alternance",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Serveur MCP personnel pour chercher, évaluer et suivre des offres d'alternance et de stage (La bonne alternance, France Travail), hébergé sur Cloudflare Workers.",
+  "author": "Deo Gratias Loutou (https://deogratias-loutou.fr)",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "verifier": "npm run typecheck && npm test && wrangler deploy --dry-run --outdir dist",
+    "db:migrer:local": "wrangler d1 migrations apply mcp-alternance --local",
+    "db:migrer": "wrangler d1 migrations apply mcp-alternance --remote"
+  },
+  "dependencies": {
+    "@cfworker/json-schema": "^4.1.6",
+    "@cloudflare/workers-oauth-provider": "^1.2.4",
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261109.1",
+    "@types/node": "^22.20.5",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0",
+    "wrangler": "^4.158.0"
+  },
+  "engines": {
+    "node": ">=22.13"
+  }
+}

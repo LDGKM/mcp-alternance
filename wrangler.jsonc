@@ -1,0 +1,31 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "mcp-alternance",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+
+  // Jetons OAuth émis pour Claude (exigé par @cloudflare/workers-oauth-provider).
+  // Remplacez l'id par celui affiché par : npx wrangler kv namespace create OAUTH_KV
+  "kv_namespaces": [
+    { "binding": "OAUTH_KV", "id": "A_REMPLACER_PAR_L_ID_DU_KV" }
+  ],
+
+  // Base de données des candidatures.
+  // Remplacez l'id par celui affiché par : npx wrangler d1 create mcp-alternance
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "mcp-alternance",
+      "database_id": "A_REMPLACER_PAR_L_ID_DE_LA_BASE",
+      "migrations_dir": "migrations"
+    }
+  ]
+
+  // Secrets (jamais dans ce fichier) — à saisir avec `npx wrangler secret put <NOM>` :
+  //   CLE_ACCES         clé d'accès personnelle (32 caractères aléatoires minimum)
+  //   LBA_API_KEY       clé d'API La bonne alternance (type « production »)
+  //   FT_CLIENT_ID      identifiant client France Travail
+  //   FT_CLIENT_SECRET  clé secrète France Travail
+}
