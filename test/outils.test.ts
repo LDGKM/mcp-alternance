@@ -61,6 +61,20 @@ describe("chercher_offres", () => {
     expect(r.remarques[0]).toMatch(/La bonne alternance indisponible/);
   });
 
+  it("ne garde qu'une copie d'une offre renvoyée deux fois par la source", async () => {
+    const r = await chercherOffres(contexte(routesRecherche([offreLba(), offreLba()], [])), { ...base, sources: ["lba"] });
+    expect(r.offres.map((o) => o.id)).toEqual(["lba:lba-test-1"]);
+  });
+
+  it("data_large interroge les métiers voisins et garde les annonces data", async () => {
+    const dev = offreLba({ id: "dev" });
+    dev.offer = { ...dev.offer, title: "Alternance développeur web", description: "Front-end React." };
+    const f = routesRecherche([offreLba(), dev], []);
+    const r = await chercherOffres(contexte(f), { ...base, metier: "data_large", sources: ["lba"] });
+    expect(r.offres.map((o) => o.id)).toEqual(["lba:lba-test-1"]);
+    expect(f.appels.find((a) => a.url.pathname === "/api/job/v1/search")!.url.searchParams.get("romes")).toBe("M1419,M1405,M1403,M1805");
+  });
+
   it("saute France Travail sans identifiants, en le disant", async () => {
     const f = routesRecherche([offreLba()], [offreFt()]);
     const ctx = contexte(f);

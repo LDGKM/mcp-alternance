@@ -46,7 +46,9 @@ export function creerServeur(ctx: Contexte): McpServer {
         "Renvoie une liste triée par distance avec l'id de chaque offre.",
       inputSchema: {
         type: z.enum(["alternance", "stage"]).describe("alternance ou stage"),
-        metier: z.enum(CLES_METIERS).describe("data_analyst, data_scientist ou r_et_d"),
+        metier: z
+          .enum(CLES_METIERS)
+          .describe("data_analyst, data_scientist, data_large (métiers voisins inclus, filtrés sur la donnée : à préférer hors grandes villes) ou r_et_d"),
         ville: z.string().min(2).default("Mulhouse").describe("Nom de la commune ou code postal"),
         rayon_km: z.number().int().min(0).max(200).default(30).describe("Rayon de recherche en km"),
         date_debut: z

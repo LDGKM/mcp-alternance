@@ -97,6 +97,20 @@ export async function lireOffreLba(fetcher: Fetch, cle: string | undefined, idBr
   return donnees;
 }
 
+const ENTITES: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " " };
+
+/** Certains partenaires envoient du texte encodé en HTML (« &amp; ») : on le décode. */
+export function decoderEntites<T extends string | null | undefined>(texte: T): T {
+  if (!texte) return texte;
+  return texte.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (tout, code: string) => {
+    if (code[0] === "#") {
+      const n = code[1]?.toLowerCase() === "x" ? Number.parseInt(code.slice(2), 16) : Number.parseInt(code.slice(1), 10);
+      return Number.isFinite(n) && n > 0 && n <= 0x10ffff ? String.fromCodePoint(n) : tout;
+    }
+    return ENTITES[code.toLowerCase()] ?? tout;
+  }) as T;
+}
+
 const TELETRAVAIL: Record<string, string> = { onsite: "sur site", remote: "télétravail", hybrid: "hybride" };
 
 export function convertirLba(brute: OffreLbaBrute, origine?: { lat: number; lon: number }): OffreComplete {
@@ -119,21 +133,22 @@ export function convertirLba(brute: OffreLbaBrute, origine?: { lat: number; lon:
   return {
     id: idPrefixe("lba", brute.identifier.id ?? ""),
     source: NOM,
-    intitule: o.title?.trim() || "(sans intitulé)",
-    entreprise: w.brand || w.name || w.legal_name || null,
+    intitule: decoderEntites(o.title?.trim()) || "(sans intitulé)",
+    entreprise: decoderEntites(w.brand || w.name || w.legal_name) || null,
     lieu: w.location?.address ?? null,
     distance_km: coords && origine ? distanceKm(origine, { lat: coords[1], lon: coords[0] }) : null,
     contrat: types.length ? types.join(" ou ") : null,
     date_debut: jourIso(c.start),
     date_publication: jourIso(o.publication?.creation),
     lien_candidature: brute.apply?.url ?? null,
-    description: [o.description, w.description ? `\n**À propos de l'entreprise** : ${w.description}` : null].filter(Boolean).join("\n") || null,
+    description:
+      decoderEntites([o.description, w.description ? `\n**À propos de l'entreprise** : ${w.description}` : null].filter(Boolean).join("\n")) || null,
     duree_mois: c.duration ?? null,
     teletravail: c.remote ? (TELETRAVAIL[c.remote] ?? c.remote) : null,
     niveau_diplome: o.target_diploma?.label ?? null,
-    competences_demandees: o.desired_skills ?? [],
-    competences_a_acquerir: o.to_be_acquired_skills ?? [],
-    conditions_acces: o.access_conditions ?? [],
+    competences_demandees: (o.desired_skills ?? []).map(decoderEntites),
+    competences_a_acquerir: (o.to_be_acquired_skills ?? []).map(decoderEntites),
+    conditions_acces: (o.access_conditions ?? []).map(decoderEntites),
     // Toutes les offres de La bonne alternance sont des contrats d'alternance.
     alternance: true,
     salaire: null,

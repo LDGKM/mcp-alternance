@@ -75,6 +75,14 @@ describe("conversion des offres", () => {
     expect(o.lien_candidature).toBe("https://candidat.francetravail.fr/offres/recherche/detail/999TEST");
   });
 
+  it("décode les entités HTML envoyées par certains partenaires", () => {
+    const brute = offreLba();
+    brute.offer = { ...brute.offer, title: "Alternance - Portfolio &amp; Data Analyst H/F", description: "Charg&#233; d&#x27;&eacute;tudes" };
+    const o = convertirLba(brute);
+    expect(o.intitule).toBe("Alternance - Portfolio & Data Analyst H/F");
+    expect(o.description).toContain("Chargé d'&eacute;tudes");
+  });
+
   it("affiche clairement l'absence de lien de candidature", () => {
     const o = convertirLba(offreLba({ apply: { url: null, phone: null, recipient_id: null } }));
     expect(formaterOffre(o)).toContain("ne fournit pas de lien de candidature");

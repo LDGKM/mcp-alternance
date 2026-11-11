@@ -10,7 +10,7 @@ Hébergé sur **Cloudflare Workers** (offre gratuite), protégé par une **clé 
 
 | Outil | Rôle |
 | --- | --- |
-| `chercher_offres` | Alternance ou stage · métier (`data_analyst`, `data_scientist`, `r_et_d`) · ville et rayon · date de début. Fusionne les deux sources, retire les doublons, trie par distance. |
+| `chercher_offres` | Alternance ou stage · métier (`data_analyst`, `data_scientist`, `data_large`, `r_et_d`) · ville et rayon · date de début. Fusionne les deux sources, retire les doublons, trie par distance. |
 | `lire_offre` | Annonce complète et lien pour postuler. |
 | `evaluer_offre` | Compare l'offre à mon profil (compétences du CV, projets, disponibilité, niveau, distance) : ce qui colle, ce qui manque, ce qui est à vérifier. |
 | `suivre_candidatures` | Ajoute, liste et met à jour mes candidatures (date, état, relance à 10 jours par défaut). |
@@ -50,7 +50,7 @@ src/
 ├── domaine/                  modèle d'offre commun, métiers, profil, évaluation
 └── candidatures/depot.ts     accès à la table D1
 migrations/                   schéma SQL des candidatures
-test/                         54 tests (Vitest)
+test/                         57 tests (Vitest)
 docs/GUIDE.md                 installation pas à pas
 ```
 
@@ -96,7 +96,7 @@ Pour tester les outils à la main : `npx @modelcontextprotocol/inspector`, puis 
 ## Adapter à son profil
 
 - `src/domaine/profil.ts` : compétences, projets, langues et fenêtres de disponibilité (reprises de mon CV).
-- `src/domaine/metiers.ts` : métiers et codes ROME (M1419 data analyst, M1405 data scientist).
+- `src/domaine/metiers.ts` : métiers et codes ROME (M1419 data analyst, M1405 data scientist ; `data_large` ajoute M1403 et M1805, filtrés sur la donnée).
 - `src/outils/suivreCandidatures.ts` : délai de relance (`JOURS_AVANT_RELANCE`).
 
 ## Limites connues

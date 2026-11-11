@@ -4,6 +4,8 @@
  * Codes ROME vérifiés sur des fiches métier publiques (novembre 2026) :
  *   - M1419 : Data analyst
  *   - M1405 : Data scientist
+ *   - M1403 : Études et prospectives socio-économiques
+ *   - M1805 : Études et développement informatique
  * La R&D n'a pas de code ROME unique : la recherche passe par des mots-clés
  * et un filtre sur l'intitulé et la description.
  *
@@ -32,6 +34,15 @@ export const METIERS = {
     codesRome: ["M1405"],
     motsClesFranceTravail: null,
     filtreTexte: null,
+  },
+  data_large: {
+    // Beaucoup d'offres « data » sont classées sous des métiers voisins :
+    // M1403 (études et prospectives socio-économiques) et M1805 (études et développement informatique).
+    // On les interroge aussi, puis on ne garde que les annonces qui parlent de données.
+    libelle: "Data (large : analyse, science, BI, ingénierie de données)",
+    codesRome: ["M1419", "M1405", "M1403", "M1805"],
+    motsClesFranceTravail: null,
+    filtreTexte: /\bdata\b|\bdonn[ée]es\b|\bBI\b|business intelligence|statistique|machine learning|\bIA\b|\bSQL\b/i,
   },
   r_et_d: {
     libelle: "Recherche et développement (R&D)",

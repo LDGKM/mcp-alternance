@@ -16,7 +16,7 @@ Les intitulés de boutons cités ici sont ceux relevés en novembre 2026 ; ils p
 
    ```bash
    npm install
-   npm run verifier   # types + 54 tests + construction : tout doit être vert
+   npm run verifier   # types + 57 tests + construction : tout doit être vert
    ```
 
 4. *(Portfolio)* Publiez le dépôt sur GitHub :

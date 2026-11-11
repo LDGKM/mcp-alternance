@@ -103,6 +103,10 @@ export async function chercherOffres(ctx: Contexte, args: ArgsRecherche): Promis
     ...offresFt.map((o) => convertirFt(o, origine)),
   ];
 
+  // La même offre peut revenir plusieurs fois (une fois par code ROME correspondant) : une seule copie.
+  const vus = new Set<string>();
+  offres = offres.filter((o) => (vus.has(o.id) ? false : (vus.add(o.id), true)));
+
   // Type de contrat demandé.
   offres = offres.filter((o) =>
     args.type === "alternance" ? o.alternance === true : o.alternance !== true && MOTIF_STAGE.test(normaliser(`${o.intitule} ${o.description ?? ""}`)),
