@@ -27,11 +27,12 @@ export interface Candidature {
   date_candidature: string | null;
   date_relance: string | null;
   notes: string | null;
+  brouillon: string | null;
   cree_le: string;
   modifie_le: string;
 }
 
-export type NouvelleCandidature = Omit<Candidature, "id" | "cree_le" | "modifie_le">;
+export type NouvelleCandidature = Omit<Candidature, "id" | "cree_le" | "modifie_le" | "brouillon"> & { brouillon?: string | null };
 export type ModificationCandidature = Partial<Omit<Candidature, "id" | "cree_le" | "modifie_le">>;
 
 export interface FiltreCandidatures {
@@ -40,7 +41,7 @@ export interface FiltreCandidatures {
   aRelancerAu?: string;
 }
 
-const CHAMPS_MODIFIABLES = ["offre_id", "entreprise", "poste", "type", "lien", "etat", "date_candidature", "date_relance", "notes"] as const;
+const CHAMPS_MODIFIABLES = ["offre_id", "entreprise", "poste", "type", "lien", "etat", "date_candidature", "date_relance", "notes", "brouillon"] as const;
 
 export class DepotCandidatures {
   constructor(
@@ -52,10 +53,10 @@ export class DepotCandidatures {
     const horodatage = this.maintenant().toISOString();
     const ligne = await this.db
       .prepare(
-        `INSERT INTO candidatures (offre_id, entreprise, poste, type, lien, etat, date_candidature, date_relance, notes, cree_le, modifie_le)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`,
+        `INSERT INTO candidatures (offre_id, entreprise, poste, type, lien, etat, date_candidature, date_relance, notes, brouillon, cree_le, modifie_le)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`,
       )
-      .bind(c.offre_id, c.entreprise, c.poste, c.type, c.lien, c.etat, c.date_candidature, c.date_relance, c.notes, horodatage, horodatage)
+      .bind(c.offre_id, c.entreprise, c.poste, c.type, c.lien, c.etat, c.date_candidature, c.date_relance, c.notes, c.brouillon ?? null, horodatage, horodatage)
       .first<Candidature>();
     if (!ligne) throw new Error("L'enregistrement de la candidature a échoué.");
     return ligne;
@@ -96,5 +97,27 @@ export class DepotCandidatures {
       .prepare(`UPDATE candidatures SET ${affectations} WHERE id = ? RETURNING *`)
       .bind(...champs.map((c) => changements[c] ?? null), this.maintenant().toISOString(), id)
       .first<Candidature>();
+  }
+
+  /** Parmi `ids`, ceux que la veille a déjà examinés. */
+  async dejaVues(ids: string[]): Promise<Set<string>> {
+    const vues = new Set<string>();
+    // Par paquets, pour rester sous la limite de paramètres de SQLite.
+    for (let i = 0; i < ids.length; i += 90) {
+      const paquet = ids.slice(i, i + 90);
+      if (paquet.length === 0) continue;
+      const { results } = await this.db
+        .prepare(`SELECT id FROM offres_vues WHERE id IN (${paquet.map(() => "?").join(", ")})`)
+        .bind(...paquet)
+        .all<{ id: string }>();
+      for (const r of results) vues.add(r.id);
+    }
+    return vues;
+  }
+
+  async marquerVues(entrees: Array<{ id: string; score: number | null }>, jour: string): Promise<void> {
+    for (const e of entrees) {
+      await this.db.prepare("INSERT OR IGNORE INTO offres_vues (id, vue_le, score) VALUES (?, ?, ?)").bind(e.id, jour, e.score).run();
+    }
   }
 }

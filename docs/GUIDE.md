@@ -16,7 +16,7 @@ Les intitulés de boutons cités ici sont ceux relevés en novembre 2026 ; ils p
 
    ```bash
    npm install
-   npm run verifier   # types + 57 tests + construction : tout doit être vert
+   npm run verifier   # types + 66 tests + construction : tout doit être vert
    ```
 
 4. *(Portfolio)* Publiez le dépôt sur GitHub :
@@ -32,20 +32,34 @@ Les intitulés de boutons cités ici sont ceux relevés en novembre 2026 ; ils p
 
 ---
 
-## Étape 1 — France Travail (API Offres d'emploi) : sur demande
+## Étape 1 — France Travail : La Bonne Boîte (libre) et Offres d'emploi (sur demande)
 
-⚠️ **Depuis octobre 2026, l'API Offres d'emploi n'est plus proposée en libre-service** dans le catalogue de francetravail.io. D'après sa fiche sur data.gouv.fr (mise à jour le 20/10/2026), France Travail a retiré l'API le temps d'analyser ses conditions de réutilisation, après des usages automatisés massifs par des outils d'IA. L'accès se demande via le formulaire **francetravail.io/contact**.
+Votre application France Travail sert à deux API :
 
-Le serveur fonctionne sans elle : la recherche d'alternance passe par La bonne alternance, qui reprend déjà les offres d'alternance de France Travail parmi ses sources partenaires. Ce qui manque sans France Travail : la recherche de **stages**.
+| API | Accès | Rôle dans le serveur |
+| --- | --- | --- |
+| **La Bonne Boîte v2** | Libre : dans le catalogue de votre application | Entreprises qui recrutent probablement, même sans offre (`chercher_entreprises`, `veille`) |
+| **Offres d'emploi v2** | Sur demande depuis octobre 2026 | Offres d'emploi et de stage de France Travail (`chercher_offres`) |
 
-Si vous voulez demander l'accès :
+### 1.1 Application et La Bonne Boîte
 
-1. Créez un compte sur **francetravail.io** et une **application** (champ URL : `https://github.com/LDGKM/mcp-alternance`).
-2. Notez l'**identifiant client** et la **clé secrète**, affichée une seule fois à la création. Si vous ne l'avez pas notée : bouton **Renouveler** sur la fiche de l'application.
-3. Envoyez une demande via **francetravail.io/contact** : usage personnel d'un étudiant, quelques recherches par jour, sans stockage ni rediffusion des offres, dans le respect de la licence.
-4. Une fois l'accès accordé, l'API Offres d'emploi apparaît dans votre application, et vous saisissez les secrets `FT_CLIENT_ID` et `FT_CLIENT_SECRET` (étape 3.4).
+1. Sur **francetravail.io**, créez un compte et une **application** (champ URL : `https://github.com/LDGKM/mcp-alternance`).
+2. Sur la fiche de l'application, section **Ajouter une API**, cliquez sur **Ajouter** en face de **La Bonne Boite v2** et acceptez les conditions.
+3. Notez l'**identifiant client** et la **clé secrète**. La clé secrète n'est affichée qu'à la création : si vous ne l'avez pas notée, cliquez sur **Renouveler** pour en obtenir une nouvelle.
+4. Vous les saisirez avec `npx wrangler secret put FT_CLIENT_ID` et `npx wrangler secret put FT_CLIENT_SECRET` (étape 3.4).
 
 Les identifiants expirent un an après leur création : renouvelez-les avant cette date.
+
+### 1.2 Offres d'emploi (facultatif, sur demande)
+
+⚠️ **Depuis octobre 2026, l'API Offres d'emploi n'est plus proposée en libre-service.** D'après sa fiche sur data.gouv.fr (mise à jour le 20/10/2026), France Travail l'a retirée le temps d'analyser ses conditions de réutilisation, après des usages automatisés massifs par des outils d'IA. L'accès se demande via **francetravail.io/contact**.
+
+Sans elle, la recherche d'alternance passe par La bonne alternance, qui reprend déjà les offres d'alternance de France Travail. Ce qui manque : la recherche de **stages**.
+
+Si l'accès est accordé :
+
+1. L'API Offres d'emploi apparaît dans votre application.
+2. Dans `wrangler.jsonc`, passez `"FT_OFFRES_ACTIVE": "non"` à `"oui"`, puis `npm run deploy`.
 
 ---
 
@@ -112,11 +126,11 @@ Saisissez chaque secret ; Wrangler demande la valeur et masque la saisie :
 ```bash
 npx wrangler secret put CLE_ACCES          # la clé générée en 3.3
 npx wrangler secret put LBA_API_KEY        # clé La bonne alternance (étape 2)
-npx wrangler secret put FT_CLIENT_ID       # identifiant client France Travail (étape 1), seulement si l'accès est accordé
-npx wrangler secret put FT_CLIENT_SECRET   # clé secrète France Travail (étape 1), idem
+npx wrangler secret put FT_CLIENT_ID       # identifiant client France Travail (étape 1.1)
+npx wrangler secret put FT_CLIENT_SECRET   # clé secrète France Travail (étape 1.1)
 ```
 
-Sans les secrets France Travail, le serveur interroge seulement La bonne alternance et le signale dans ses réponses.
+Sans les secrets France Travail, le serveur fonctionne sans La Bonne Boîte et le signale dans ses réponses.
 
 Au premier `secret put`, Wrangler peut proposer de créer le Worker : répondez oui.
 
@@ -163,6 +177,28 @@ Ouvrez `src/domaine/profil.ts` : les compétences, langues et projets viennent d
 **Un réglage est à confirmer** : votre CV dit « alternance pour 2027-2028 » sans mois de début. La fenêtre a été réglée sur **juillet–décembre 2027**. Ajustez `debutAuPlusTot` et `debutAuPlusTard` dès que le calendrier de votre M2 est connu, puis redéployez (`npm run deploy`).
 
 Quand vous ajoutez une compétence au CV, ajoutez-la aussi dans ce fichier.
+
+---
+
+## Étape 5 bis — Veille quotidienne et brouillons
+
+L'outil `veille` examine les offres apparues depuis le dernier passage, leur donne un score sur 100 et ajoute celles qui atteignent le seuil (60 par défaut) à vos candidatures « à envoyer ». Il liste aussi de nouvelles entreprises qui recrutent (La Bonne Boîte) et vos relances dues. Claude rédige ensuite un brouillon de lettre pour chaque offre retenue, uniquement avec les faits de votre profil et de l'annonce.
+
+**Rien n'est envoyé automatiquement.** Chaque matin :
+
+1. Ouvrez le résumé de la veille (notification de la tâche planifiée).
+2. Pour chaque offre retenue : « lis la candidature n° X » affiche le brouillon. Corrigez-le, puis postulez avec le lien fourni.
+3. Dites « candidature X envoyée » : l'état passe à « envoyée » et la relance se programme à J+10.
+4. Une offre qui ne vous intéresse pas : « passe la candidature X en abandonnée ».
+
+Réglages utiles : le seuil, le rayon (60 km par défaut), les métiers (`data_large` et `r_et_d` par défaut). Le barème du score est dans `src/domaine/evaluation.ts`.
+
+À la mise à jour qui ajoute la veille, appliquez la nouvelle migration avant de déployer :
+
+```powershell
+npm run db:migrer
+npm run deploy
+```
 
 ---
 

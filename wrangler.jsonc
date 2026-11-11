@@ -9,6 +9,10 @@
 	"observability": {
 		"enabled": true
 	},
+	// Variables non secrètes. Passer à "oui" le jour où France Travail accorde l'API Offres d'emploi.
+	"vars": {
+		"FT_OFFRES_ACTIVE": "non"
+	},
 	// Jetons OAuth émis pour Claude (exigé par @cloudflare/workers-oauth-provider).
 	// Créé avec : npx wrangler kv namespace create OAUTH_KV
 	"kv_namespaces": [
@@ -30,6 +34,6 @@
 	// Secrets (jamais dans ce fichier) — à saisir avec `npx wrangler secret put <NOM>` :
 	//   CLE_ACCES         clé d'accès personnelle (32 caractères aléatoires minimum)
 	//   LBA_API_KEY       clé d'API La bonne alternance (type « production »)
-	//   FT_CLIENT_ID      identifiant client France Travail
+	//   FT_CLIENT_ID      identifiant client France Travail (La Bonne Boîte, et Offres d'emploi si accordée)
 	//   FT_CLIENT_SECRET  clé secrète France Travail
 }

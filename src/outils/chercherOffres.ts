@@ -3,7 +3,8 @@ import { normaliser } from "../domaine/evaluation.js";
 import { METIERS, type CleMetier } from "../domaine/metiers.js";
 import { type OffreComplete, resumer, type ResumeOffre } from "../domaine/offre.js";
 import { convertirFt, type OffreFtBrute, rechercherFt } from "../sources/franceTravail.js";
-import { trouverCommune } from "../sources/geo.js";
+import { type Commune, trouverCommune } from "../sources/geo.js";
+import { identifiantsPresents } from "../sources/jetonFranceTravail.js";
 import { convertirLba, type OffreLbaBrute, rechercherLba } from "../sources/laBonneAlternance.js";
 import type { Contexte } from "./contexte.js";
 import { premierJour } from "./dates.js";
@@ -40,20 +41,28 @@ export function filtreMotsCles(motsCles: string | undefined): (o: OffreComplete)
   return (o) => termes.every((t) => texte(o).includes(t));
 }
 
-export async function chercherOffres(ctx: Contexte, args: ArgsRecherche): Promise<ResultatRecherche> {
+export interface OffresTrouvees {
+  commune: Commune;
+  /** Offres complètes, sans doublon, filtrées et triées par distance. */
+  offres: OffreComplete[];
+  remarques: string[];
+  debutMin: string | null;
+}
+
+/** Recherche commune à chercher_offres et à la veille : renvoie les offres complètes. */
+export async function trouverOffres(ctx: Contexte, args: Omit<ArgsRecherche, "limite">, commune?: Commune): Promise<OffresTrouvees> {
   const metier = METIERS[args.metier];
-  const commune = await trouverCommune(ctx.fetch, args.ville);
+  commune ??= await trouverCommune(ctx.fetch, args.ville);
   const origine = { lat: commune.lat, lon: commune.lon };
   const remarques: string[] = [];
-  const parSource: Record<string, number> = {};
 
   const veutLba = args.sources.includes("lba");
-  // Depuis octobre 2026, l'API Offres d'emploi n'est plus en libre-service : sans identifiants, on saute la source.
-  const ftConfigure = Boolean(ctx.secrets.FT_CLIENT_ID && ctx.secrets.FT_CLIENT_SECRET);
+  // Depuis octobre 2026, l'API Offres d'emploi n'est plus en libre-service : on ne l'interroge que si l'accès est déclaré.
+  const ftConfigure = ctx.franceTravailOffres && identifiantsPresents({ clientId: ctx.secrets.FT_CLIENT_ID, clientSecret: ctx.secrets.FT_CLIENT_SECRET });
   const veutFt = args.sources.includes("ft") && ftConfigure;
   if (args.sources.includes("ft") && !ftConfigure) {
     remarques.push(
-      "France Travail non configuré : l'API Offres d'emploi est accordée sur demande depuis octobre 2026 (voir le guide). Recherche faite sans cette source.",
+      "France Travail (offres) non activé : l'API Offres d'emploi est accordée sur demande depuis octobre 2026 (voir le guide). Recherche faite sans cette source.",
     );
   }
   if (veutLba && args.type === "stage") {
@@ -130,6 +139,13 @@ export async function chercherOffres(ctx: Contexte, args: ArgsRecherche): Promis
       (a.distance_km ?? Number.POSITIVE_INFINITY) - (b.distance_km ?? Number.POSITIVE_INFINITY) ||
       (b.date_publication ?? "").localeCompare(a.date_publication ?? ""),
   );
+  return { commune, offres, remarques, debutMin };
+}
+
+export async function chercherOffres(ctx: Contexte, args: ArgsRecherche): Promise<ResultatRecherche> {
+  const metier = METIERS[args.metier];
+  const { commune, offres, remarques, debutMin } = await trouverOffres(ctx, args);
+  const parSource: Record<string, number> = {};
   for (const o of offres) parSource[o.source] = (parSource[o.source] ?? 0) + 1;
 
   const suivies = new Map((await ctx.depot.lister()).filter((c) => c.offre_id).map((c) => [c.offre_id as string, LIBELLES_ETATS[c.etat]]));

@@ -1,6 +1,6 @@
 # mcp-alternance
 
-Serveur [MCP](https://modelcontextprotocol.io) personnel qui permet à Claude de **chercher, lire, évaluer et suivre** des offres d'alternance et de stage en data et R&D, à partir de deux sources publiques et gratuites : **La bonne alternance** et **France Travail**.
+Serveur [MCP](https://modelcontextprotocol.io) personnel qui permet à Claude de **chercher, lire, évaluer et suivre** des offres d'alternance et de stage en data et R&D, et de **faire une veille quotidienne** qui prépare les candidatures. Sources publiques et gratuites : **La bonne alternance**, **La Bonne Boîte** et **France Travail**.
 
 Hébergé sur **Cloudflare Workers** (offre gratuite), protégé par une **clé d'accès personnelle**, avec un suivi des candidatures stocké dans **Cloudflare D1**.
 
@@ -13,7 +13,10 @@ Hébergé sur **Cloudflare Workers** (offre gratuite), protégé par une **clé 
 | `chercher_offres` | Alternance ou stage · métier (`data_analyst`, `data_scientist`, `data_large`, `r_et_d`) · ville et rayon · date de début. Fusionne les deux sources, retire les doublons, trie par distance. |
 | `lire_offre` | Annonce complète et lien pour postuler. |
 | `evaluer_offre` | Compare l'offre à mon profil (compétences du CV, projets, disponibilité, niveau, distance) : ce qui colle, ce qui manque, ce qui est à vérifier. |
-| `suivre_candidatures` | Ajoute, liste et met à jour mes candidatures (date, état, relance à 10 jours par défaut). |
+| `evaluer_offre` (suite) | Donne un **score de correspondance sur 100**, détaillé part par part. |
+| `chercher_entreprises` | Entreprises à fort potentiel d'embauche sans offre publiée (La Bonne Boîte), pour des candidatures spontanées. |
+| `veille` | Nouvelles offres depuis le dernier passage : score, ajout en « à envoyer » au-dessus d'un seuil, nouvelles entreprises, relances dues, et faits autorisés pour rédiger les brouillons. |
+| `suivre_candidatures` | Ajoute, liste, lit et met à jour mes candidatures (date, état, relance à 10 jours par défaut, brouillon de lettre). |
 
 Exemples de demandes à Claude une fois le connecteur ajouté :
 
@@ -21,6 +24,11 @@ Exemples de demandes à Claude une fois le connecteur ajouté :
 - « Évalue l'offre lba:… et dis-moi quels projets mettre en avant. »
 - « Ajoute cette offre à mes candidatures, je l'ai envoyée aujourd'hui. »
 - « Quelles candidatures dois-je relancer ? »
+- « Fais la veille et rédige les brouillons des offres retenues. »
+
+### Ce qui est automatisé, et ce qui ne l'est pas
+
+Une tâche planifiée lance `veille` chaque matin : les nouvelles offres sont notées, celles qui atteignent le seuil arrivent dans les candidatures « à envoyer » avec un brouillon de lettre rédigé par Claude à partir des seuls faits du profil et de l'annonce. **L'envoi reste manuel** : l'API de candidature de La bonne alternance n'est pas ouverte aux particuliers, et remplir automatiquement les formulaires des recruteurs enfreindrait leurs conditions. Je relis, j'envoie, puis je passe la candidature en « envoyée » : la relance se programme seule.
 
 ## Architecture
 
@@ -30,12 +38,13 @@ flowchart LR
   subgraph W[Cloudflare Worker]
     A["/authorize<br/>(clé d'accès)"] --- P[OAuthProvider]
     P --> M["/mcp<br/>serveur MCP sans état"]
-    M --> O[4 outils]
+    M --> O[6 outils]
   end
   P <--> KV[(KV : jetons OAuth)]
   O <--> D1[(D1 : candidatures)]
   O --> LBA[API La bonne alternance]
-  O --> FT[API Offres d'emploi<br/>France Travail]
+  O --> FT[API Offres d'emploi<br/>France Travail, sur demande]
+  O --> LBB[API La Bonne Boîte<br/>France Travail]
   O --> G[API Géo<br/>geo.api.gouv.fr]
 ```
 
@@ -44,13 +53,13 @@ src/
 ├── index.ts                  point d'entrée : OAuthProvider + serveur MCP
 ├── env.ts                    liaisons et secrets du Worker
 ├── auth/                     page /authorize, vérification de la clé en temps constant
-├── mcp/serveur.ts            déclaration des 4 outils (schémas zod)
+├── mcp/serveur.ts            déclaration des 6 outils (schémas zod)
 ├── outils/                   logique des outils, testable sans réseau
-├── sources/                  clients des API (La bonne alternance, France Travail, Géo)
+├── sources/                  clients des API (La bonne alternance, La Bonne Boîte, France Travail, Géo)
 ├── domaine/                  modèle d'offre commun, métiers, profil, évaluation
 └── candidatures/depot.ts     accès à la table D1
-migrations/                   schéma SQL des candidatures
-test/                         57 tests (Vitest)
+migrations/                   schéma SQL (candidatures, brouillons, offres déjà vues)
+test/                         66 tests (Vitest)
 docs/GUIDE.md                 installation pas à pas
 ```
 
@@ -60,7 +69,9 @@ docs/GUIDE.md                 installation pas à pas
 - **OAuth + clé d'accès** : sur claude.ai, un connecteur personnalisé s'authentifie en OAuth (l'envoi d'une clé fixe dans un en-tête est en bêta, réservé à certaines organisations). Le serveur joue donc lui-même le rôle de serveur OAuth, et sa page d'autorisation demande la clé d'accès. Sans secret `CLE_ACCES` d'au moins 32 caractères, personne ne peut se connecter.
 - **Serveur MCP sans état** : une instance par requête avec le transport Streamable HTTP du SDK officiel (`WebStandardStreamableHTTPServerTransport`). Pas de Durable Object, rien à gérer entre deux appels.
 - **Aucune donnée inventée** : chaque champ vient tel quel de la source ; une information absente reste `null` et s'affiche comme « non indiqué ». France Travail ne publie pas de date de début : le filtre par date garde ces offres en le signalant.
-- **Évaluation explicable** : `evaluer_offre` repère des mots-clés et compare des dates. Pas de note sur 100 : chaque conclusion cite ce qui a été repéré dans l'annonce.
+- **Évaluation explicable** : `evaluer_offre` repère des mots-clés et compare des dates. Le score sur 100 suit un barème fixe et lisible (compétences 50, date 20, niveau 15, distance 15, dans `src/domaine/evaluation.ts`), et chaque part est affichée avec sa raison.
+- **Un jeton par API France Travail** : chaque API demande ses seules portées, pour qu'une API non accordée n'empêche pas d'utiliser les autres.
+- **Brouillons sans invention** : la veille fournit la liste fermée des faits du profil (formation, expériences, projets, compétences du CV) ; la consigne de rédaction interdit d'en ajouter.
 - **Dépendances injectées** : les outils reçoivent `fetch`, la base et la date du jour, ce qui permet de les tester sans réseau, avec une vraie base SQLite en mémoire (`node:sqlite`).
 
 ## Installer et déployer
@@ -75,7 +86,7 @@ npx wrangler login
 npx wrangler kv namespace create OAUTH_KV      # puis reporter l'id dans wrangler.jsonc
 npx wrangler d1 create mcp-alternance          # puis reporter l'id dans wrangler.jsonc
 npm run db:migrer
-npx wrangler secret put CLE_ACCES              # et LBA_API_KEY, FT_CLIENT_ID, FT_CLIENT_SECRET
+npx wrangler secret put CLE_ACCES              # et LBA_API_KEY, FT_CLIENT_ID, FT_CLIENT_SECRET (La Bonne Boîte)
 npm run deploy
 ```
 
@@ -98,6 +109,8 @@ Pour tester les outils à la main : `npx @modelcontextprotocol/inspector`, puis 
 - `src/domaine/profil.ts` : compétences, projets, langues et fenêtres de disponibilité (reprises de mon CV).
 - `src/domaine/metiers.ts` : métiers et codes ROME (M1419 data analyst, M1405 data scientist ; `data_large` ajoute M1403 et M1805, filtrés sur la donnée).
 - `src/outils/suivreCandidatures.ts` : délai de relance (`JOURS_AVANT_RELANCE`).
+- `src/domaine/evaluation.ts` : barème du score (`BAREME`).
+- `wrangler.jsonc` : `FT_OFFRES_ACTIVE` à `"oui"` le jour où France Travail accorde l'API Offres d'emploi.
 
 ## Limites connues
 
@@ -105,8 +118,10 @@ Pour tester les outils à la main : `npx @modelcontextprotocol/inspector`, puis 
 - La bonne alternance ne couvre que l'alternance : les stages viennent uniquement de France Travail.
 - La R&D n'a pas de code ROME : la recherche filtre sur le texte de l'annonce (« R&D », « recherche et développement »).
 - Chaque source renvoie au plus 150 offres par recherche.
+- Le format de réponse de La Bonne Boîte v2 n'est pas publié : il est lu de façon défensive (`src/sources/laBonneBoite.ts`).
+- Le score repose sur des mots-clés : il trie, il ne remplace pas la lecture de l'annonce.
 - L'API La bonne alternance est réservée aux usages non commerciaux.
 
 ## Licence
 
-MIT. Les données restent la propriété de leurs producteurs (La bonne alternance, France Travail) et sont soumises à leurs conditions d'utilisation.
+MIT. Les données restent la propriété de leurs producteurs (La bonne alternance, France Travail, La Bonne Boîte) et sont soumises à leurs conditions d'utilisation.

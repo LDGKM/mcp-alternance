@@ -16,6 +16,7 @@ export interface ArgsAjout {
   date_candidature?: string | undefined;
   date_relance?: string | undefined;
   notes?: string | undefined;
+  brouillon?: string | undefined;
 }
 
 export interface ArgsMiseAJour extends Omit<ArgsAjout, "offre_id"> {
@@ -25,7 +26,8 @@ export interface ArgsMiseAJour extends Omit<ArgsAjout, "offre_id"> {
 export type ArgsSuivi =
   | ({ action: "ajouter" } & ArgsAjout)
   | { action: "lister"; etat?: Etat | undefined; a_relancer?: boolean | undefined }
-  | ({ action: "mettre_a_jour" } & ArgsMiseAJour);
+  | ({ action: "mettre_a_jour" } & ArgsMiseAJour)
+  | { action: "lire"; id: number };
 
 export async function suivreCandidatures(ctx: Contexte, args: ArgsSuivi): Promise<string> {
   switch (args.action) {
@@ -35,6 +37,8 @@ export async function suivreCandidatures(ctx: Contexte, args: ArgsSuivi): Promis
       return lister(ctx, args.etat, args.a_relancer ?? false);
     case "mettre_a_jour":
       return mettreAJour(ctx, args);
+    case "lire":
+      return lire(ctx, args.id);
   }
 }
 
@@ -45,8 +49,10 @@ async function ajouter(ctx: Contexte, a: ArgsAjout): Promise<string> {
   if (offreId) {
     const existante = await ctx.depot.trouverParOffre(offreId);
     if (existante) return `Cette offre est déjà suivie :\n\n${ligne(existante, ctx.aujourdhui())}\n\nUtilisez l'action mettre_a_jour avec l'id ${existante.id} pour la modifier.`;
-    // Complète les champs manquants à partir de l'annonce.
-    if (!entreprise || !poste || !lien || !type) {
+    // Complète les champs manquants à partir de l'annonce (une entreprise La Bonne Boîte n'en a pas).
+    if (offreId.startsWith("lbb:")) {
+      lien ||= `https://annuaire-entreprises.data.gouv.fr/etablissement/${offreId.slice(4)}`;
+    } else if (!entreprise || !poste || !lien || !type) {
       try {
         const offre = await chargerOffre(ctx, offreId);
         entreprise ||= offre.entreprise ?? undefined;
@@ -81,6 +87,7 @@ async function ajouter(ctx: Contexte, a: ArgsAjout): Promise<string> {
     date_candidature: dateCandidature,
     date_relance: dateRelance,
     notes: a.notes ?? null,
+    brouillon: a.brouillon ?? null,
   });
   return `Candidature enregistrée :\n\n${ligne(c, aujourdhui)}`;
 }
@@ -111,6 +118,7 @@ async function mettreAJour(ctx: Contexte, a: ArgsMiseAJour): Promise<string> {
     date_candidature: a.date_candidature,
     date_relance: a.date_relance,
     notes: a.notes,
+    brouillon: a.brouillon,
   };
   // Passage à « envoyée » : date du jour et relance programmée si rien n'est précisé.
   if (a.etat === "envoyee" && !avant.date_candidature && !a.date_candidature) changements.date_candidature = aujourdhui;
@@ -124,6 +132,12 @@ async function mettreAJour(ctx: Contexte, a: ArgsMiseAJour): Promise<string> {
   return `Candidature mise à jour :\n\n${ligne(apres, aujourdhui)}`;
 }
 
+async function lire(ctx: Contexte, id: number): Promise<string> {
+  const c = await ctx.depot.lire(id);
+  if (!c) throw new Error(`Aucune candidature avec l'id ${id}. Utilisez l'action lister pour voir les id.`);
+  return [ligne(c, ctx.aujourdhui()), "", "## Brouillon", c.brouillon?.trim() || "(aucun brouillon)"].join("\n");
+}
+
 function ligne(c: Candidature, aujourdhui: string): string {
   const enAttente = c.etat === "envoyee" || c.etat === "relancee";
   const relance =
@@ -135,5 +149,6 @@ function ligne(c: Candidature, aujourdhui: string): string {
   if (c.lien) morceaux.push(`   ${c.lien}`);
   if (c.offre_id) morceaux.push(`   offre \`${c.offre_id}\``);
   if (c.notes) morceaux.push(`   Notes : ${c.notes}`);
+  if (c.brouillon) morceaux.push(`   ✍️ brouillon prêt (${c.brouillon.length} caractères) : action lire pour l'afficher`);
   return morceaux.join("\n");
 }

@@ -23,10 +23,10 @@ const texteDe = (r: Awaited<ReturnType<Client["callTool"]>>) => (r.content as Ar
 describe("serveur MCP", () => {
   afterEach(() => viderCacheJeton());
 
-  it("expose les quatre outils", async () => {
+  it("expose les six outils", async () => {
     const client = await clientConnecte();
     const { tools } = await client.listTools();
-    expect(tools.map((t) => t.name).sort()).toEqual(["chercher_offres", "evaluer_offre", "lire_offre", "suivre_candidatures"]);
+    expect(tools.map((t) => t.name).sort()).toEqual(["chercher_entreprises", "chercher_offres", "evaluer_offre", "lire_offre", "suivre_candidatures", "veille"]);
   });
 
   it("appelle chercher_offres avec les valeurs par défaut", async () => {

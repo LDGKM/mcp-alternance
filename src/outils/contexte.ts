@@ -13,6 +13,8 @@ export interface Contexte {
     FT_CLIENT_ID?: string | undefined;
     FT_CLIENT_SECRET?: string | undefined;
   };
+  /** Vrai seulement si France Travail a accordé l'accès à l'API Offres d'emploi (variable FT_OFFRES_ACTIVE). */
+  franceTravailOffres: boolean;
   depot: DepotCandidatures;
   profil: Profil;
   /** Date du jour (AAAA-MM-JJ, heure de Paris). */
@@ -21,6 +23,9 @@ export interface Contexte {
 
 /** Récupère une offre complète, quelle que soit sa source. */
 export async function chargerOffre(ctx: Contexte, id: string): Promise<OffreComplete> {
+  if (id.trim().startsWith("lbb:")) {
+    throw new Error("Cet identifiant désigne une entreprise (La Bonne Boîte), pas une offre : il n'y a pas d'annonce à lire. Voir sa fiche publique avec chercher_entreprises.");
+  }
   const { source, idBrut } = decouperId(id.trim());
   const origine = { lat: ctx.profil.ville.lat, lon: ctx.profil.ville.lon };
   if (source === "lba") return convertirLba(await lireOffreLba(ctx.fetch, ctx.secrets.LBA_API_KEY, idBrut), origine);

@@ -16,4 +16,6 @@ export interface Env {
   /** Identifiants de l'application France Travail (OAuth2 client_credentials). */
   FT_CLIENT_ID?: string;
   FT_CLIENT_SECRET?: string;
+  /** « oui » quand France Travail a accordé l'API Offres d'emploi (variable non secrète, wrangler.jsonc). */
+  FT_OFFRES_ACTIVE?: string;
 }

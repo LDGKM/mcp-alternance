@@ -18,6 +18,7 @@ export function creerContexte(env: Env): Contexte {
   return {
     fetch: (entree, init) => fetch(entree, init),
     secrets: { LBA_API_KEY: env.LBA_API_KEY, FT_CLIENT_ID: env.FT_CLIENT_ID, FT_CLIENT_SECRET: env.FT_CLIENT_SECRET },
+    franceTravailOffres: env.FT_OFFRES_ACTIVE === "oui",
     depot: new DepotCandidatures(env.DB),
     profil: PROFIL,
     aujourdhui: () => jourAParis(),

@@ -81,7 +81,7 @@ describe("chercher_offres", () => {
     ctx.secrets = { LBA_API_KEY: "cle" };
     const r = await chercherOffres(ctx, base);
     expect(r.offres.map((o) => o.id)).toEqual(["lba:lba-test-1"]);
-    expect(r.remarques[0]).toMatch(/France Travail non configuré/);
+    expect(r.remarques[0]).toMatch(/France Travail \(offres\) non activé/);
     expect(f.appels.some((a) => a.url.hostname.includes("francetravail"))).toBe(false);
   });
 

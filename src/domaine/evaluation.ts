@@ -75,8 +75,50 @@ export interface Evaluation {
   competences_qui_manquent: string[];
   a_mettre_en_avant: Array<{ demande: string; appui: string[] }>;
   projets_a_citer: string[];
+  score: Score;
   limites: string;
 }
+
+/** Score de correspondance sur 100, avec le détail de chaque part (pour le comprendre et le contester). */
+export interface Score {
+  total: number;
+  detail: string[];
+}
+
+/**
+ * Barème (modifiable ici) :
+ *  - compétences : 50 points × part des compétences repérées qui sont dans le profil ;
+ *  - date de début : 20 ; niveau : 15 ; distance : 15.
+ * Un contrat qui n'est ni une alternance ni un stage vaut 0, quel que soit le reste.
+ */
+export const BAREME = { competences: 50, date: 20, niveau: 15, distance: 15 } as const;
+
+const PART: Record<Statut, number> = { compatible: 1, non_indique: 0.6, a_verifier: 0.4, incompatible: 0 };
+
+export function calculerScore(e: Omit<Evaluation, "score" | "limites">): Score {
+  if (e.type_contrat.statut === "incompatible") return { total: 0, detail: ["Contrat ni alternance ni stage : 0"] };
+  const collent = e.competences_qui_collent.length;
+  const manquent = e.competences_qui_manquent.length;
+  const comp = collent + manquent === 0 ? BAREME.competences / 2 : Math.round((BAREME.competences * collent) / (collent + manquent));
+  const date = Math.round(BAREME.date * PART[e.date_debut.statut]);
+  const niveau = Math.round(BAREME.niveau * PART[e.niveau.statut]);
+  const d = e.distance;
+  const partDistance = d.statut === "non_indique" ? 0.5 : d.statut === "compatible" ? 1 : 0.4;
+  const distance = Math.round(BAREME.distance * partDistance);
+  return {
+    total: comp + date + niveau + distance,
+    detail: [
+      collent + manquent === 0
+        ? `Compétences : ${comp}/${BAREME.competences} (aucune compétence repérée dans l'annonce)`
+        : `Compétences : ${comp}/${BAREME.competences} (${collent} du profil, ${manquent} hors profil)`,
+      `Date de début : ${date}/${BAREME.date} (${LIBELLES_STATUT[e.date_debut.statut]})`,
+      `Niveau : ${niveau}/${BAREME.niveau} (${LIBELLES_STATUT[e.niveau.statut]})`,
+      `Distance : ${distance}/${BAREME.distance} (${LIBELLES_STATUT[d.statut]})`,
+    ],
+  };
+}
+
+const LIBELLES_STATUT: Record<Statut, string> = { compatible: "compatible", a_verifier: "à vérifier", incompatible: "incompatible", non_indique: "non indiqué" };
 
 /** Minuscules, sans accents, espaces normalisés. */
 export function normaliser(texte: string): string {
@@ -174,7 +216,7 @@ export function evaluer(o: OffreComplete, profil: Profil): Evaluation {
       ? { type, statut: "incompatible", detail: `Contrat « ${o.contrat ?? "non indiqué"} » : ni alternance ni stage d'après l'annonce.` }
       : { type, statut: "compatible", detail: type === "alternance" ? `Contrat en alternance${o.contrat ? ` (${o.contrat})` : ""}.` : "Stage." };
 
-  return {
+  const base = {
     offre: { id: o.id, intitule: o.intitule, entreprise: o.entreprise, lien: o.lien_candidature },
     type_contrat: typeVerif,
     date_debut: verifierDate(o.date_debut, fenetre),
@@ -184,6 +226,10 @@ export function evaluer(o: OffreComplete, profil: Profil): Evaluation {
     competences_qui_manquent: manquent,
     a_mettre_en_avant: enAvant,
     projets_a_citer: projets,
+  };
+  return {
+    ...base,
+    score: calculerScore(base),
     limites:
       "Analyse par mots-clés : une compétence absente du texte n'est pas comptée, et un mot repéré ne dit pas le niveau attendu. Relisez l'annonce avant de conclure.",
   };
@@ -192,7 +238,14 @@ export function evaluer(o: OffreComplete, profil: Profil): Evaluation {
 const ICONES: Record<Statut, string> = { compatible: "✅", a_verifier: "⚠️", incompatible: "❌", non_indique: "❔" };
 
 export function formaterEvaluation(e: Evaluation): string {
-  const l: string[] = [`# Évaluation : ${e.offre.intitule}${e.offre.entreprise ? ` — ${e.offre.entreprise}` : ""}`, `Offre ${e.offre.id}`, ""];
+  const l: string[] = [
+    `# Évaluation : ${e.offre.intitule}${e.offre.entreprise ? ` — ${e.offre.entreprise}` : ""}`,
+    `Offre ${e.offre.id}`,
+    "",
+    `**Score de correspondance : ${e.score.total}/100**`,
+    ...e.score.detail.map((d) => `- ${d}`),
+    "",
+  ];
   l.push("## Conditions");
   l.push(`- ${ICONES[e.type_contrat.statut]} Type : ${e.type_contrat.detail}`);
   l.push(`- ${ICONES[e.date_debut.statut]} Date de début : ${e.date_debut.detail}`);

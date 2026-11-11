@@ -29,6 +29,13 @@ export interface Fenetre {
   origine: string;
 }
 
+export interface Experience {
+  poste: string;
+  structure: string;
+  lieu: string;
+  periode: string;
+}
+
 export interface Profil {
   nom: string;
   ville: { nom: string; lat: number; lon: number };
@@ -37,6 +44,8 @@ export interface Profil {
   niveauEuropeenVise: string;
   competences: Competence[];
   langues: string[];
+  experiences: Experience[];
+  certifications: string[];
   projets: Projet[];
   disponibilite: { alternance: Fenetre; stage: Fenetre };
 }
@@ -86,6 +95,11 @@ export const PROFIL: Profil = {
     { nom: "Jira", alias: ["jira"] },
   ],
   langues: ["Français (langue maternelle)", "Anglais (B2)"],
+  experiences: [
+    { poste: "Stagiaire développeur web et analyste", structure: "PetitAvis", lieu: "Feucherolles", periode: "juin–août 2026" },
+    { poste: "Stagiaire technicien informatique et réseaux", structure: "JASPE Technologies", lieu: "Bénin", periode: "2024–2025" },
+  ],
+  certifications: ["DataCamp Python Data Fundamentals (28 h, juillet 2026)", "DataCamp GitHub Foundations (9 h, juillet 2026)"],
   projets: [
     { nom: "Vigie, assistant RAG avec citation des sources", date: "nov. 2026", technologies: ["C++20", "SQLite", "llama.cpp"] },
     {

@@ -1,5 +1,5 @@
 /** Outils communs aux tests : fausses réponses HTTP, base SQLite en mémoire, offres fictives. */
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import { DepotCandidatures } from "../src/candidatures/depot.js";
 import { PROFIL } from "../src/domaine/profil.js";
@@ -40,7 +40,8 @@ export const routeJetonFt: Route = (url) =>
 /** Base SQLite en mémoire exposée avec la même interface que D1 (sous-ensemble utilisé). */
 export function baseEnMemoire(): D1Database {
   const db = new DatabaseSync(":memory:");
-  db.exec(readFileSync(new URL("../migrations/0001_candidatures.sql", import.meta.url), "utf8"));
+  const dossier = new URL("../migrations/", import.meta.url);
+  for (const f of readdirSync(dossier).filter((n) => n.endsWith(".sql")).sort()) db.exec(readFileSync(new URL(f, dossier), "utf8"));
   const normaliser = (ligne: unknown) => (ligne ? { ...(ligne as object) } : null);
   return {
     prepare(sql: string) {
@@ -70,6 +71,7 @@ export function contexte(fetcher: Fetch, aujourdhui = "2026-11-09"): Contexte {
   return {
     fetch: fetcher,
     secrets: { LBA_API_KEY: "cle-lba-de-test", FT_CLIENT_ID: "id-de-test", FT_CLIENT_SECRET: "secret-de-test" },
+    franceTravailOffres: true,
     depot: new DepotCandidatures(baseEnMemoire(), () => new Date(`${aujourdhui}T10:00:00Z`)),
     profil: PROFIL,
     aujourdhui: () => aujourdhui,
