@@ -61,6 +61,16 @@ describe("chercher_offres", () => {
     expect(r.remarques[0]).toMatch(/La bonne alternance indisponible/);
   });
 
+  it("saute France Travail sans identifiants, en le disant", async () => {
+    const f = routesRecherche([offreLba()], [offreFt()]);
+    const ctx = contexte(f);
+    ctx.secrets = { LBA_API_KEY: "cle" };
+    const r = await chercherOffres(ctx, base);
+    expect(r.offres.map((o) => o.id)).toEqual(["lba:lba-test-1"]);
+    expect(r.remarques[0]).toMatch(/France Travail non configuré/);
+    expect(f.appels.some((a) => a.url.hostname.includes("francetravail"))).toBe(false);
+  });
+
   it("pour un stage, n'interroge que France Travail avec le mot-clé « stage »", async () => {
     const stage = offreFt({ id: "STG1", intitule: "Stage data analyst", alternance: false });
     const f = routesRecherche([], [stage, offreFt()]);

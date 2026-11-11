@@ -50,7 +50,7 @@ src/
 ├── domaine/                  modèle d'offre commun, métiers, profil, évaluation
 └── candidatures/depot.ts     accès à la table D1
 migrations/                   schéma SQL des candidatures
-test/                         53 tests (Vitest)
+test/                         54 tests (Vitest)
 docs/GUIDE.md                 installation pas à pas
 ```
 
@@ -101,7 +101,8 @@ Pour tester les outils à la main : `npx @modelcontextprotocol/inspector`, puis 
 
 ## Limites connues
 
-- La bonne alternance ne couvre que l'alternance : les stages viennent uniquement de France Travail, qui en publie peu.
+- Depuis octobre 2026, l'API Offres d'emploi de France Travail est accordée sur demande ([fiche data.gouv.fr](https://www.data.gouv.fr/dataservices/api-offres-demploi)). Sans elle, le serveur fonctionne avec La bonne alternance seule, qui reprend déjà les offres d'alternance de France Travail.
+- La bonne alternance ne couvre que l'alternance : les stages viennent uniquement de France Travail.
 - La R&D n'a pas de code ROME : la recherche filtre sur le texte de l'annonce (« R&D », « recherche et développement »).
 - Chaque source renvoie au plus 150 offres par recherche.
 - L'API La bonne alternance est réservée aux usages non commerciaux.

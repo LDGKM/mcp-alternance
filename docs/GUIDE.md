@@ -16,7 +16,7 @@ Les intitulés de boutons cités ici sont ceux relevés en novembre 2026 ; ils p
 
    ```bash
    npm install
-   npm run verifier   # types + 53 tests + construction : tout doit être vert
+   npm run verifier   # types + 54 tests + construction : tout doit être vert
    ```
 
 4. *(Portfolio)* Publiez le dépôt sur GitHub :
@@ -32,14 +32,20 @@ Les intitulés de boutons cités ici sont ceux relevés en novembre 2026 ; ils p
 
 ---
 
-## Étape 1 — France Travail (API Offres d'emploi)
+## Étape 1 — France Travail (API Offres d'emploi) : sur demande
 
-1. Allez sur **francetravail.io** et créez un compte développeur (adresse e-mail + validation).
-2. Dans votre espace, **créez une application** (nom libre, par exemple « mcp-alternance » ; description : usage personnel de recherche d'alternance).
-3. Dans le catalogue des API, ouvrez **« API Offres d'emploi »** et **abonnez votre application** à cette API. Acceptez les conditions d'utilisation.
-4. Ouvrez la fiche de votre application : notez l'**identifiant client** et la **clé secrète**. Gardez-les dans un gestionnaire de mots de passe ; vous les saisirez à l'étape 3.
+⚠️ **Depuis octobre 2026, l'API Offres d'emploi n'est plus proposée en libre-service** dans le catalogue de francetravail.io. D'après sa fiche sur data.gouv.fr (mise à jour le 20/10/2026), France Travail a retiré l'API le temps d'analyser ses conditions de réutilisation, après des usages automatisés massifs par des outils d'IA. L'accès se demande via le formulaire **francetravail.io/contact**.
 
-> Le serveur demande la portée `api_offresdemploiv2 o2dsoffre`. Si une recherche renvoie « accès refusé », vérifiez que l'application est bien abonnée à l'API Offres d'emploi.
+Le serveur fonctionne sans elle : la recherche d'alternance passe par La bonne alternance, qui reprend déjà les offres d'alternance de France Travail parmi ses sources partenaires. Ce qui manque sans France Travail : la recherche de **stages**.
+
+Si vous voulez demander l'accès :
+
+1. Créez un compte sur **francetravail.io** et une **application** (champ URL : `https://github.com/LDGKM/mcp-alternance`).
+2. Notez l'**identifiant client** et la **clé secrète**, affichée une seule fois à la création. Si vous ne l'avez pas notée : bouton **Renouveler** sur la fiche de l'application.
+3. Envoyez une demande via **francetravail.io/contact** : usage personnel d'un étudiant, quelques recherches par jour, sans stockage ni rediffusion des offres, dans le respect de la licence.
+4. Une fois l'accès accordé, l'API Offres d'emploi apparaît dans votre application, et vous saisissez les secrets `FT_CLIENT_ID` et `FT_CLIENT_SECRET` (étape 3.4).
+
+Les identifiants expirent un an après leur création : renouvelez-les avant cette date.
 
 ---
 
@@ -106,9 +112,11 @@ Saisissez chaque secret ; Wrangler demande la valeur et masque la saisie :
 ```bash
 npx wrangler secret put CLE_ACCES          # la clé générée en 3.3
 npx wrangler secret put LBA_API_KEY        # clé La bonne alternance (étape 2)
-npx wrangler secret put FT_CLIENT_ID       # identifiant client France Travail (étape 1)
-npx wrangler secret put FT_CLIENT_SECRET   # clé secrète France Travail (étape 1)
+npx wrangler secret put FT_CLIENT_ID       # identifiant client France Travail (étape 1), seulement si l'accès est accordé
+npx wrangler secret put FT_CLIENT_SECRET   # clé secrète France Travail (étape 1), idem
 ```
+
+Sans les secrets France Travail, le serveur interroge seulement La bonne alternance et le signale dans ses réponses.
 
 Au premier `secret put`, Wrangler peut proposer de créer le Worker : répondez oui.
 
@@ -211,6 +219,6 @@ Les quotas gratuits de Cloudflare (Workers, KV, D1) dépassent largement un usag
 | Claude : « Couldn't reach the MCP server » | URL sans `/mcp` à la fin, ou Worker non déployé. Ouvrez l'URL de base dans un navigateur. |
 | « La clé d'API La bonne alternance n'est pas configurée » | Secret `LBA_API_KEY` manquant (étape 3.4). |
 | Offres La bonne alternance étranges ou peu nombreuses | Clé de type « sandbox » au lieu de « production » (étape 2.3). |
-| « accès refusé » côté France Travail | Identifiants erronés, ou application non abonnée à l'API Offres d'emploi (étape 1.3). |
+| « accès refusé » côté France Travail | Identifiants erronés, ou accès à l'API Offres d'emploi pas encore accordé (étape 1). |
 | « Ville introuvable » | Essayez le code postal (`68100`) ou le nom exact de la commune. |
 | Erreur après `npm run deploy` sur les liaisons | Les identifiants KV ou D1 de `wrangler.jsonc` n'ont pas été remplacés (étape 3.2). |

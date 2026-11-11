@@ -48,7 +48,14 @@ export async function chercherOffres(ctx: Contexte, args: ArgsRecherche): Promis
   const parSource: Record<string, number> = {};
 
   const veutLba = args.sources.includes("lba");
-  const veutFt = args.sources.includes("ft");
+  // Depuis octobre 2026, l'API Offres d'emploi n'est plus en libre-service : sans identifiants, on saute la source.
+  const ftConfigure = Boolean(ctx.secrets.FT_CLIENT_ID && ctx.secrets.FT_CLIENT_SECRET);
+  const veutFt = args.sources.includes("ft") && ftConfigure;
+  if (args.sources.includes("ft") && !ftConfigure) {
+    remarques.push(
+      "France Travail non configuré : l'API Offres d'emploi est accordée sur demande depuis octobre 2026 (voir le guide). Recherche faite sans cette source.",
+    );
+  }
   if (veutLba && args.type === "stage") {
     remarques.push("La bonne alternance ne publie que des offres d'alternance : elle n'est pas interrogée pour un stage.");
   }
