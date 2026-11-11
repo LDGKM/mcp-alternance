@@ -81,7 +81,7 @@ export async function veille(ctx: Contexte, args: ArgsVeille): Promise<string> {
   // 4. Entreprises susceptibles de recruter (La Bonne Boîte), nouvelles seulement.
   let entreprises: Entreprise[] = [];
   if (args.entreprises > 0) {
-    const codes = [...new Set(args.metiers.flatMap((m) => METIERS[m].codesRome))];
+    const codes = [...new Set(args.metiers.flatMap((m) => METIERS[m].codesEntreprises ?? METIERS[m].codesRome))];
     if (!identifiantsPresents(idsFranceTravail(ctx))) {
       remarques.add("La Bonne Boîte non configurée (secrets FT_CLIENT_ID et FT_CLIENT_SECRET) : pas de liste d'entreprises.");
     } else if (codes.length > 0) {

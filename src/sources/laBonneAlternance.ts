@@ -153,6 +153,7 @@ export function convertirLba(brute: OffreLbaBrute, origine?: { lat: number; lon:
     alternance: true,
     salaire: null,
     telephone: brute.apply?.phone ?? null,
+    codes_rome: o.rome_codes ?? [],
     autres_infos: autres,
   };
 }

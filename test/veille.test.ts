@@ -70,6 +70,13 @@ describe("La Bonne Boîte", () => {
     await expect(rechercherEntreprises(fauxFetch(), ids, { codeInsee: "68224", rayonKm: 30, codesRome: [], taille: 5 })).rejects.toThrow(/code ROME/);
   });
 
+  it("chercher_entreprises cherche les entreprises de R&D par H1206 et K2402", async () => {
+    const f = fauxFetch(routeGeo, routeJetonLbb, routeLbb);
+    const texte = await chercherEntreprises(contexte(f), { metier: "r_et_d", ville: "Mulhouse", rayon_km: 30, limite: 5 });
+    expect(f.appels.find((a) => a.url.pathname.endsWith("/recherche"))!.url.searchParams.getAll("rome")).toEqual(["H1206", "K2402"]);
+    expect(texte).toContain("Bureau Fictif");
+  });
+
   it("chercher_entreprises explique l'absence d'identifiants", async () => {
     const ctx = contexte(fauxFetch());
     ctx.secrets = {};

@@ -120,8 +120,11 @@ export async function trouverOffres(ctx: Contexte, args: Omit<ArgsRecherche, "li
   offres = offres.filter((o) =>
     args.type === "alternance" ? o.alternance === true : o.alternance !== true && MOTIF_STAGE.test(normaliser(`${o.intitule} ${o.description ?? ""}`)),
   );
-  // Métier sans code ROME (R&D) : filtre sur le texte.
-  if (metier.filtreTexte) offres = offres.filter((o) => metier.filtreTexte!.test(`${o.intitule} ${o.description ?? ""}`));
+  // Codes voisins : on ne garde que les annonces dont le texte correspond au métier.
+  if (metier.filtreTexte) {
+    const propres = new Set<string>(metier.codesSansFiltre);
+    offres = offres.filter((o) => o.codes_rome.some((c) => propres.has(c)) || metier.filtreTexte!.test(`${o.intitule} ${o.description ?? ""}`));
+  }
   offres = offres.filter(filtreMotsCles(args.mots_cles));
 
   // Date de début.

@@ -127,6 +127,7 @@ export function convertirFt(brute: OffreFtBrute, origine?: { lat: number; lon: n
     alternance: typeof brute.alternance === "boolean" ? brute.alternance : null,
     salaire: [brute.salaire?.libelle, brute.salaire?.commentaire].filter(Boolean).join(" – ") || null,
     telephone: brute.contact?.telephone ?? null,
+    codes_rome: brute.romeCode ? [brute.romeCode] : [],
     autres_infos: autres,
   };
 }

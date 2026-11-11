@@ -38,6 +38,8 @@ export interface OffreComplete extends ResumeOffre {
   alternance: boolean | null;
   salaire: string | null;
   telephone: string | null;
+  /** Codes ROME attribués par la source (peut être vide). */
+  codes_rome: string[];
   autres_infos: Record<string, string>;
 }
 

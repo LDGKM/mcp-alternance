@@ -24,7 +24,7 @@ export async function chercherEntreprises(ctx: Contexte, args: ArgsEntreprises):
   const entreprises = await rechercherEntreprises(ctx.fetch, idsFranceTravail(ctx), {
     codeInsee: commune.codeInsee,
     rayonKm: args.rayon_km,
-    codesRome: metier.codesRome,
+    codesRome: metier.codesEntreprises ?? metier.codesRome,
     taille: args.limite,
   });
   const suivies = new Set((await ctx.depot.lister()).map((c) => c.offre_id).filter(Boolean));

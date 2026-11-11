@@ -59,7 +59,7 @@ src/
 ├── domaine/                  modèle d'offre commun, métiers, profil, évaluation
 └── candidatures/depot.ts     accès à la table D1
 migrations/                   schéma SQL (candidatures, brouillons, offres déjà vues)
-test/                         66 tests (Vitest)
+test/                         67 tests (Vitest)
 docs/GUIDE.md                 installation pas à pas
 ```
 
@@ -107,7 +107,7 @@ Pour tester les outils à la main : `npx @modelcontextprotocol/inspector`, puis 
 ## Adapter à son profil
 
 - `src/domaine/profil.ts` : compétences, projets, langues et fenêtres de disponibilité (reprises de mon CV).
-- `src/domaine/metiers.ts` : métiers et codes ROME (M1419 data analyst, M1405 data scientist ; `data_large` ajoute M1403 et M1805, filtrés sur la donnée).
+- `src/domaine/metiers.ts` : métiers et codes ROME (M1419 data analyst, M1405 data scientist ; `data_large` ajoute M1403 et M1805, filtrés sur la donnée ; `r_et_d` prend H1206 et K2402 d'office, et M1805 et M1405 quand l'annonce parle de R&D ou de recherche).
 - `src/outils/suivreCandidatures.ts` : délai de relance (`JOURS_AVANT_RELANCE`).
 - `src/domaine/evaluation.ts` : barème du score (`BAREME`).
 - `wrangler.jsonc` : `FT_OFFRES_ACTIVE` à `"oui"` le jour où France Travail accorde l'API Offres d'emploi.
@@ -116,7 +116,7 @@ Pour tester les outils à la main : `npx @modelcontextprotocol/inspector`, puis 
 
 - Depuis octobre 2026, l'API Offres d'emploi de France Travail est accordée sur demande ([fiche data.gouv.fr](https://www.data.gouv.fr/dataservices/api-offres-demploi)). Sans elle, le serveur fonctionne avec La bonne alternance seule, qui reprend déjà les offres d'alternance de France Travail.
 - La bonne alternance ne couvre que l'alternance : les stages viennent uniquement de France Travail.
-- La R&D n'a pas de code ROME : la recherche filtre sur le texte de l'annonce (« R&D », « recherche et développement »).
+- La R&D s'appuie sur deux codes ROME propres (H1206 ingénieur R&D en industrie, K2402 ingénieur de recherche) ; la R&D logicielle et en IA, classée en développement ou en data science, n'est repérée que si l'annonce emploie des termes comme « R&D », « recherche » ou « prototype ».
 - Chaque source renvoie au plus 150 offres par recherche.
 - Le format de réponse de La Bonne Boîte v2 n'est pas publié : il est lu de façon défensive (`src/sources/laBonneBoite.ts`).
 - Le score repose sur des mots-clés : il trie, il ne remplace pas la lecture de l'annonce.

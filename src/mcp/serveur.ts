@@ -143,7 +143,7 @@ export function creerServeur(ctx: Contexte): McpServer {
         "Liste les entreprises qui ont un fort potentiel d'embauche pour un métier autour d'une ville, même sans offre publiée (La Bonne Boîte, France Travail). " +
         "Pour des candidatures spontanées ciblées.",
       inputSchema: {
-        metier: z.enum(CLES_METIERS).default("data_large").describe("data_analyst, data_scientist ou data_large (r_et_d n'a pas de code ROME)"),
+        metier: z.enum(CLES_METIERS).default("data_large").describe("data_analyst, data_scientist, data_large ou r_et_d (ingénieurs R&D et de recherche)"),
         ville: z.string().min(2).default("Mulhouse"),
         rayon_km: z.number().int().min(1).max(200).default(30),
         limite: z.number().int().min(1).max(50).default(15),

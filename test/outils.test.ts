@@ -68,7 +68,7 @@ describe("chercher_offres", () => {
 
   it("data_large interroge les métiers voisins et garde les annonces data", async () => {
     const dev = offreLba({ id: "dev" });
-    dev.offer = { ...dev.offer, title: "Alternance développeur web", description: "Front-end React." };
+    dev.offer = { ...dev.offer, title: "Alternance développeur web", description: "Front-end React.", rome_codes: ["M1805"] };
     const f = routesRecherche([offreLba(), dev], []);
     const r = await chercherOffres(contexte(f), { ...base, metier: "data_large", sources: ["lba"] });
     expect(r.offres.map((o) => o.id)).toEqual(["lba:lba-test-1"]);
@@ -94,11 +94,17 @@ describe("chercher_offres", () => {
     expect(f.appels.find((a) => a.url.pathname.endsWith("/offres/search"))!.url.searchParams.get("motsCles")).toBe("stage");
   });
 
-  it("filtre la R&D sur le texte de l'annonce", async () => {
-    const rd = offreLba({ id: "rd" });
-    rd.offer = { ...rd.offer, title: "Alternance ingénieur R&D logiciel" };
-    const r = await chercherOffres(contexte(routesRecherche([rd, offreLba()], [])), { ...base, metier: "r_et_d", sources: ["lba"] });
-    expect(r.offres.map((o) => o.id)).toEqual(["lba:rd"]);
+  it("R&D : garde les métiers de recherche d'office et filtre les codes voisins sur le texte", async () => {
+    const recherche = offreLba({ id: "recherche" });
+    recherche.offer = { ...recherche.offer, title: "Alternance ingénieur matériaux", description: "Essais.", rome_codes: ["K2402"] };
+    const logicielRd = offreLba({ id: "logiciel-rd" });
+    logicielRd.offer = { ...logicielRd.offer, title: "Alternance ingénieur R&D logiciel", description: "Prototypes.", rome_codes: ["M1805"] };
+    const logiciel = offreLba({ id: "logiciel" });
+    logiciel.offer = { ...logiciel.offer, title: "Alternance développeur web", description: "Site vitrine.", rome_codes: ["M1805"] };
+    const f = routesRecherche([recherche, logicielRd, logiciel], []);
+    const r = await chercherOffres(contexte(f), { ...base, metier: "r_et_d", sources: ["lba"] });
+    expect(r.offres.map((o) => o.id).sort()).toEqual(["lba:logiciel-rd", "lba:recherche"]);
+    expect(f.appels.find((a) => a.url.pathname === "/api/job/v1/search")!.url.searchParams.get("romes")).toBe("H1206,K2402,M1805,M1405");
   });
 
   it("signale les offres déjà suivies", async () => {
